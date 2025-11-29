@@ -55,6 +55,36 @@ namespace bizlabcoreapi.Data
         );
     ";
 
+        public string GetPatients()
+        {
+            var connString = _configuration.GetConnectionString("bizlabcoreapiContext");
+            var results = new List<Dictionary<string, object>>();
+            using (var connection = new NpgsqlConnection(connString))
+            {
+                connection.Open();
+                using (var cmd = new NpgsqlCommand("SELECT * FROM patients", connection))
+                {
+                    cmd.CommandType = System.Data.CommandType.Text;
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var row = new Dictionary<string, object>();
+
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            }
+                            results.Add(row);
+                        }
+                    }
+                }
+            }
+
+            string json = JsonConvert.SerializeObject(results, Formatting.Indented);
+            return json;
+        }
+
         public void InsertPatient(Patient p)
         {
             var connString = _configuration.GetConnectionString("bizlabcoreapiContext");

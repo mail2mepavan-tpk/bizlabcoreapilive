@@ -23,9 +23,10 @@ namespace bizlabcoreapi.Controllers
     {
         // GET: api/<PatientController>
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IActionResult> Get()
         {
-            return new string[] { "value1", "value2" };
+            var response = new Data.PatientData().GetPatients();
+            return Ok(response);
         }
 
         // GET api/<PatientController>/5
