@@ -38,6 +38,9 @@ namespace bizlabcoreapi.Data
             using (var connection = new NpgsqlConnection(connString))
             {
                 connection.Open();
+                using var cmdDelete = new NpgsqlCommand("DELETE FROM user_activity WHERE user_id='" + userId + "'", connection);
+                cmdDelete.ExecuteNonQuery();
+
                 const string sql = @"
                     INSERT INTO user_activity (browser_id,user_id, logged_in, last_transaction)
                     VALUES (@browser_id,@user_id, @logged_in, @last_transaction);
