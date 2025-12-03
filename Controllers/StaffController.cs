@@ -28,9 +28,9 @@ namespace bizlabcoreapi.Controllers
 
         // GET: AllStaff
         [HttpGet("/allstaff")]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get(string authId)
         {
-            return Ok(GetStaffUsersDataAll());
+            return Ok(GetStaffUsersDataAll(authId));
         }
 
         // GET: AllStaff
@@ -42,96 +42,129 @@ namespace bizlabcoreapi.Controllers
 
         // GET: AllStaff
         [HttpPost("NewStaffUser")]
-        public async Task<IActionResult> NewStaffUser(staff_users staff)
+        public async Task<IActionResult> NewStaffUser(staff_users staff, string authId)
         {
-            return Ok(CreateStaffUser(staff));
+            return Ok(CreateStaffUser(staff, authId));
         }
 
         [HttpDelete("DeleteStaffUser")]
-        public async Task<IActionResult> DeleteStaffUser(string staffid)
+        public async Task<IActionResult> DeleteStaffUser(string staffid, string authId)
         {
-            return Ok(DeleteUser(staffid));
+            return Ok(DeleteUser(staffid, authId));
         }
 
-        private string GetStaffUsersDataAll()
+        private string GetStaffUsersDataAll(string authId)
         {
-            var sqlCommand = "select id,username,full_name, password_hash,email, role, location, active from staff_users";
-            var results = new List<Dictionary<string, object>>();
-
-            using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
+            var secureUser = new SecureUserData();
+            if (secureUser.IsSecure(authId))
             {
-                connection.Open();
-                using (var command = new NpgsqlCommand(sqlCommand, connection))
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var row = new Dictionary<string, object>();
+                var sqlCommand = "select id,username,full_name, password_hash,email, role, location, active from staff_users";
+                var results = new List<Dictionary<string, object>>();
 
-                        for (int i = 0; i < reader.FieldCount; i++)
+                using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand(sqlCommand, connection))
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
                         {
-                            row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            var row = new Dictionary<string, object>();
+
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            }
+                            results.Add(row);
                         }
-                        results.Add(row);
                     }
                 }
-            }
 
-            string json = JsonConvert.SerializeObject(results, Formatting.Indented);
-            return json;
+                string json = JsonConvert.SerializeObject(results, Formatting.Indented);
+
+                secureUser.UpdateAuthBrowser(authId);
+                return json;
+            }
+            else
+            {
+                return "Authentication Failed";
+            }
+          
         }
 
-        private string CreateStaffUser(staff_users user)
+        private string CreateStaffUser(staff_users user, string authId)
         {
-            string json = "";
-            string insertQuery = @"
+            var secureUser = new SecureUserData();
+            if (secureUser.IsSecure(authId))
+            {
+                string json = "";
+                string insertQuery = @"
                 INSERT INTO public.staff_users
                     (id, username, password_hash, email, full_name, role, location, active, created_at)
                 VALUES
                     (@id, @username, @password_hash, @Email, @full_name, @role, @location, @active, @created_at)
                 RETURNING id;";
 
-            using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
-            {
-                connection.Open();
-                using (var cmd = new NpgsqlCommand(insertQuery, connection))
+                using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
                 {
-                    cmd.Parameters.AddWithValue("@id", System.Guid.NewGuid());
-                    cmd.Parameters.AddWithValue("@username", user.username);
-                    cmd.Parameters.AddWithValue("@password_hash", user.password_hash);
-                    cmd.Parameters.AddWithValue("@email", user.email);
-                    cmd.Parameters.AddWithValue("@full_name", user.full_name);
-                    cmd.Parameters.AddWithValue("@role", user.role);
-                    cmd.Parameters.AddWithValue("@location", user.location);
-                    cmd.Parameters.AddWithValue("@active", user.active);
-                    cmd.Parameters.AddWithValue("@created_at", user.LastUpdate);
+                    connection.Open();
+                    using (var cmd = new NpgsqlCommand(insertQuery, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@id", System.Guid.NewGuid());
+                        cmd.Parameters.AddWithValue("@username", user.username);
+                        cmd.Parameters.AddWithValue("@password_hash", user.password_hash);
+                        cmd.Parameters.AddWithValue("@email", user.email);
+                        cmd.Parameters.AddWithValue("@full_name", user.full_name);
+                        cmd.Parameters.AddWithValue("@role", user.role);
+                        cmd.Parameters.AddWithValue("@location", user.location);
+                        cmd.Parameters.AddWithValue("@active", user.active);
+                        cmd.Parameters.AddWithValue("@created_at", user.LastUpdate);
 
-                    // Execute and get the generated ID (if table has SERIAL or IDENTITY)
-                    Guid insertedId = (Guid)cmd.ExecuteScalar();
-                    json = JsonConvert.SerializeObject(insertedId.ToString(), Formatting.Indented);
+                        // Execute and get the generated ID (if table has SERIAL or IDENTITY)
+                        Guid insertedId = (Guid)cmd.ExecuteScalar();
+                        json = JsonConvert.SerializeObject(insertedId.ToString(), Formatting.Indented);
+                    }
                 }
+
+                secureUser.UpdateAuthBrowser(authId);
+                return json;
             }
-            return json;
+            else
+            {
+                return "Authentication Failed";
+            }
+          
         }
 
-        private string DeleteUser(string id)
+        private string DeleteUser(string id, string authId)
         {
-            string json = "";
-            string insertQuery = @"DELETE FROM public.staff_users WHERE id = @id";
-
-            using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
+            var secureUser = new SecureUserData();
+            if (secureUser.IsSecure(authId))
             {
-                connection.Open();
-                using (var cmd = new NpgsqlCommand(insertQuery, connection))
-                {
-                    cmd.Parameters.AddWithValue("@id", Guid.Parse(id));
+                string json = "";
+                string insertQuery = @"DELETE FROM public.staff_users WHERE id = @id";
 
-                    // Execute and get the generated ID (if table has SERIAL or IDENTITY)
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    json = JsonConvert.SerializeObject(rowsAffected.ToString(), Formatting.Indented);
+                using (var connection = new NpgsqlConnection(_context.Database.GetDbConnection().ConnectionString))
+                {
+                    connection.Open();
+                    using (var cmd = new NpgsqlCommand(insertQuery, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@id", Guid.Parse(id));
+
+                        // Execute and get the generated ID (if table has SERIAL or IDENTITY)
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        json = JsonConvert.SerializeObject(rowsAffected.ToString(), Formatting.Indented);
+                    }
                 }
+
+                secureUser.UpdateAuthBrowser(authId);
+                return json;
             }
-            return json;
+            else
+            {
+                return "Authentication Failed";
+            }
+          
         }
 
         private string StaffAuthorize(string username, string password)
@@ -159,6 +192,7 @@ namespace bizlabcoreapi.Controllers
 
             if(results.Count > 0)
             {
+                new SecureUserData().InsertAuthBrowser(results[0]["id"].ToString(), results[0]["id"].ToString());
                 // Successful authentication logic can be added here
                 string json = JsonConvert.SerializeObject(results, Formatting.Indented);
                 return json;
