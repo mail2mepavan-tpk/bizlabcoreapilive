@@ -56,6 +56,13 @@ namespace bizlabcoreapi.Controllers
             new Data.PatientData().UpdatePatientInactive(id);
         }
 
+        [HttpPut("patientupdate/{authId}")]
+        public void PatientUpdate([FromBody] PatientUpdateData data, string authId)
+        {
+            //new Data.PatientData().UpdatePatientInactive(authId);
+            new Data.PatientData().UpdatePatientData(data, authId);
+        }
+
         // DELETE api/<PatientController>/5
         [HttpDelete("{id}")]
         public void Delete(string id, string authId)

@@ -259,6 +259,58 @@ namespace bizlabcoreapi.Data
             return patientMaster.id;
         }
 
-      
+        public void UpdatePatientData(PatientUpdateData patient, string authId)
+        {
+            string sql = @"
+            UPDATE master_patients
+            SET
+                first_name = COALESCE(@first_name, first_name),
+                last_name = COALESCE(@last_name, last_name),
+                email = COALESCE(@email, email),
+                phone = COALESCE(@phone, phone),
+                address = COALESCE(@address, address),
+                city = COALESCE(@city, city),
+                state = COALESCE(@state, state),
+                zip_code = COALESCE(@zip_code, zip_code),
+                patient_type = COALESCE(@patient_type, patient_type),
+                date_of_birth = @date_of_birth,
+                gender = COALESCE(@gender, gender)
+            WHERE id = @id;
+            ";
+
+            var secureUserData = new SecureUserData();
+            if (secureUserData.IsSecure(authId))
+            {
+                using var conn = new NpgsqlConnection(_configuration.GetConnectionString("bizlabcoreapiContext"));
+                conn.Open();
+
+                using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@id", patient.Id);
+                cmd.Parameters.AddWithValue("@first_name", (object?)patient.first_name ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@last_name", (object?)patient.last_name ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@email", (object?)patient.email ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@phone", (object?)patient.phone ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@address", (object?)patient.address ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@city", (object?)patient.city ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@state", (object?)patient.state ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@zip_code", (object?)patient.zip_code ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@patient_type", (object?)patient.patient_status ?? DBNull.Value);
+                //cmd.Parameters.AddWithValue("@date_of_birth", patient.date_of_birth != "" ? DateTime.Parse(patient.date_of_birth).ToShortDateString() : null);
+                cmd.Parameters.Add(
+                                    new NpgsqlParameter("@date_of_birth", NpgsqlTypes.NpgsqlDbType.Date)
+                                    {
+                                        Value = patient.date_of_birth != "" ? DateTime.Parse(patient.date_of_birth) : (object?)DBNull.Value
+                                    });
+                cmd.Parameters.AddWithValue("@gender", (object?)patient.gender ?? DBNull.Value);
+                //cmd.Parameters.AddWithValue("@emergency_relationship", (object?)patient.emergency_relationship ?? DBNull.Value);
+                //cmd.Parameters.AddWithValue("@emergency_contact_phone", (object?)patient.emergency_contact_phone ?? DBNull.Value);
+                //cmd.Parameters.AddWithValue("@emergency_name", (object?)patient.emergency_name ?? DBNull.Value);
+                cmd.ExecuteNonQuery();
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Authentication Failed");
+            }
+        }
     }
 }

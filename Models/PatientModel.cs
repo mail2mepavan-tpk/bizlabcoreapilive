@@ -1,5 +1,8 @@
-﻿using System;
+﻿using bizlabcoreapi.Models;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace bizlabcoreapi.Models
 {
@@ -71,4 +74,22 @@ namespace bizlabcoreapi.Models
         public DateTime updated_at { get; set; }
     }
 
+    public class PatientUpdateData
+    {
+        public Guid Id { get; set; }
+        public string? first_name { get; set; }
+        public string? last_name { get; set; }
+        public string? email { get; set; }
+        public string? phone { get; set; }
+        public string? address { get; set; }
+        public string? city { get; set; }
+        public string? state { get; set; }
+        public string? zip_code { get; set; }
+        public string? patient_status { get; set; }
+        public string date_of_birth { get; set; }
+        public string? gender { get; set; }
+        public string? emergency_relationship { get; set; }
+        public string? emergency_contact_phone { get; set; }
+        public string? emergency_name { get; set; }
+    }
 }
